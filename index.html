@@ -14,6 +14,7 @@
       <div><strong>XODUS</strong><span>HEX RACE TO THE VAULT</span></div>
     </div>
     <div class="controls">
+      <span id="syncStatus" class="sync-status" aria-live="polite">Connecting…</span>
       <label>Teams <select id="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
       <label>Targets <select id="viewTeam"></select></label>
       <button id="modeButton" class="button">Organizer mode</button>
@@ -76,6 +77,7 @@
         </div>
         <h3>Recent activity</h3>
         <div id="eventHistory" class="event-history"></div>
+        <button id="signOutButton" class="button sign-out">Sign out organizer</button>
       </section>
     </aside>
   </main>
@@ -86,7 +88,18 @@
     <div class="dialog-actions"><button id="cancelReset" class="button">Cancel</button><button id="confirmReset" class="button danger">Reset everything</button></div>
   </dialog>
 
+  <dialog id="loginDialog">
+    <form id="loginForm">
+      <h2>Organizer sign in</h2>
+      <p>Clan members do not need an account. Sign in only to update the live board.</p>
+      <label>Email<input id="loginEmail" type="email" autocomplete="username" required></label>
+      <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+      <p id="loginError" class="login-error" role="alert"></p>
+      <div class="dialog-actions"><button id="cancelLogin" type="button" class="button">Cancel</button><button type="submit" class="button gold login-submit">Sign in</button></div>
+    </form>
+  </dialog>
+
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script src="app.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>
