@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b0c0e">
+  <title>Xodus · Hex Race to the Vault</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">X</span>
+      <div><strong>XODUS</strong><span>HEX RACE TO THE VAULT</span></div>
+    </div>
+    <div class="controls">
+      <label>Teams <select id="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <label>Targets <select id="viewTeam"></select></label>
+      <button id="modeButton" class="button">Organizer mode</button>
+      <button id="fitButton" class="icon-button" title="Center map">⌖</button>
+      <button id="zoomOut" class="icon-button" title="Zoom out">−</button>
+      <button id="zoomIn" class="icon-button" title="Zoom in">+</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="map-shell" aria-label="Hex race board">
+      <div class="map-status">
+        <span><i class="dot outer"></i> Outer <b>108</b></span>
+        <span><i class="dot middle"></i> Middle <b>42</b></span>
+        <span><i class="dot inner"></i> Inner <b>18</b></span>
+        <span><i class="dot vault"></i> Vault <b>1</b></span>
+      </div>
+      <div id="viewport">
+        <svg id="board" role="img" aria-label="A symmetrical 169 tile hex map"></svg>
+      </div>
+      <div class="map-hint">Drag to move · Scroll to zoom · Select a tile for details</div>
+    </section>
+
+    <aside id="panel" class="panel">
+      <div class="panel-empty" id="emptyState">
+        <div class="mini-hex">?</div>
+        <h2>Select a tile</h2>
+        <p>Inspect its boss, required drop, ownership, and route status.</p>
+      </div>
+      <div id="tileDetails" hidden>
+        <div class="eyebrow" id="tileId"></div>
+        <h2 id="bossName"></h2>
+        <p class="drop" id="dropName"></p>
+        <div class="detail-grid">
+          <div><span>Tier</span><strong id="tierName"></strong></div>
+          <div><span>Status</span><strong id="tileStatus"></strong></div>
+          <div><span>Owner</span><strong id="tileOwner"></strong></div>
+          <div><span>Distance</span><strong id="distance"></strong></div>
+          <div><span>Difficulty</span><strong id="difficulty"></strong></div>
+          <div><span>Route</span><strong id="routeType"></strong></div>
+          <div><span>Eligibility</span><strong id="eligibility"></strong></div>
+          <div><span>Claim type</span><strong id="claimType"></strong></div>
+        </div>
+        <div class="organizer" id="organizerTools" hidden>
+          <h3>Record an approved claim</h3>
+          <label>Team<select id="claimTeam"></select></label>
+          <label>Player<input id="claimPlayer" placeholder="RuneScape name"></label>
+          <label>Screenshot link<input id="claimProof" placeholder="Discord message or image URL"></label>
+          <button id="claimButton" class="button gold">Capture tile</button>
+          <div class="admin-actions"><button id="correctButton" class="button">Save correction</button><button id="removeButton" class="button danger">Remove claim</button></div>
+        </div>
+      </div>
+      <div class="legend" id="teamLegend"></div>
+      <section class="admin-panel" id="adminPanel" hidden>
+        <h3>Organizer tools</h3>
+        <div class="admin-actions">
+          <button id="lockButton" class="button">Lock setup</button>
+          <button id="undoButton" class="button">Undo last</button>
+          <button id="resetButton" class="button danger">Reset event</button>
+        </div>
+        <h3>Recent activity</h3>
+        <div id="eventHistory" class="event-history"></div>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="resetDialog">
+    <h2>Reset the event?</h2>
+    <p>This removes every capture, steal, correction, and history entry. Team count and challenge placement remain unchanged.</p>
+    <div class="dialog-actions"><button id="cancelReset" class="button">Cancel</button><button id="confirmReset" class="button danger">Reset everything</button></div>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
