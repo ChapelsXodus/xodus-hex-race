@@ -26,8 +26,15 @@ const middle=[
  ['Venenatis','Voidwaker gem',3],['Venenatis','Treasonous ring',3],['Vet’ion','Voidwaker blade',3],['Vet’ion','Ring of the gods',3],['Hueycoatl','Dragon hunter wand',2],['Hueycoatl','Tome of earth',1],['Corrupted Gauntlet','Armour seed',3],
  ['Zulrah','Tanzanite fang',5],['Zulrah','Magic fang',5],['Zulrah','Serpentine visage',5],['Yama','Soulflame horn or any Oathplate piece',3]
 ];
-const ring2=[['Chambers of Xeric','Any purple'],['Tombs of Amascut','Any purple'],['Theatre of Blood','Any purple'],['Nex','Any unique']];
-const ring1=[['Corporeal Beast','Any sigil'],['The Nightmare','Any unique']];
+const symmetricRings={
+ 7:[['Scurrius','Bone weapon spine',1],['Barrows','Any Barrows equipment piece',2],['Perilous Moons','Any Moon equipment piece',2],['Dagannoth Kings','Any ring',2],['Royal Titans','Any Twinflame staff piece',3],['Amoxliatl','Any standard unique',2],['God Wars Dungeon','Any boss-specific unique',2]],
+ 6:[['Hueycoatl','Hueycoatl hide',2],['Zulrah','Any standard unique',3],['Sarachnis','Sarachnis cudgel',3],['Phantom Muspah','Venator shard',3],['God Wars Dungeon','Any Godsword shard',3],['Corrupted Gauntlet','Armour seed',3]],
+ 5:[['Callisto','Voidwaker hilt or Tyrannical ring',4],['Venenatis','Voidwaker gem or Treasonous ring',4],['Vet’ion','Voidwaker blade or Ring of the gods',4],['God Wars Dungeon','Any hilt',4],['Yama','Soulflame horn or any Oathplate piece',4]],
+ 4:[['Tombs of Amascut','Any purple',5]],
+ 3:[['Theatre of Blood','Any purple',5]],
+ 2:[['Chambers of Xeric','Any purple',5]],
+ 1:[['Corporeal Beast','Any sigil',5],['The Nightmare','Any unique',5]]
+};
 const vault=['The Vault','Twisted bow, Tumeken’s shadow, or Scythe of vitur'];
 let teamCount=Number(localStorage.getItem('xodus-team-count')||4),viewTeam=Number(localStorage.getItem('xodus-view-team')||0),organizer=false,selected=null;
 let claims=JSON.parse(localStorage.getItem('xodus-claims')||'{}');
@@ -40,34 +47,20 @@ function angleOf(q,r){return Math.atan2(Math.sqrt(3)*(r+q/2),1.5*q)}
 function coordKey(q,r){return `${q},${r}`}
 function angleDistance(a,b){let d=Math.abs(a-b)%(Math.PI*2);return Math.min(d,Math.PI*2-d)}
 function directness(cell){const baseAngles=teamBases().map(b=>angleOf(b.q,b.r));const nearest=Math.min(...baseAngles.map(a=>angleDistance(cell.angle,a)));const halfGap=Math.PI/teamCount;return 1-Math.min(1,nearest/halfGap)}
-function zone(d){return d===0?'vault':d<=2?'inner':d<=4?'middle':'outer';}
-function shortBoss(name){return name.replace('General ','G. ').replace('Commander ','C. ').replace('Corporeal Beast','Corp').replace('Dagannoth Kings','DKs').replace('God Wars Dungeon','GWD').replace('Tombs of Amascut','ToA').replace('Theatre of Blood','ToB').replace('Chambers of Xeric','CoX').replace('Perilous Moons','Moons').slice(0,15)}
+function zone(d){return d===0?'vault':d<=4?'inner':d<=6?'middle':'outer';}
+function shortBoss(name){return name.replace('Corporeal Beast or The Nightmare','Corp / Nightmare').replace('General ','G. ').replace('Commander ','C. ').replace('Corporeal Beast','Corp').replace('Dagannoth Kings','DKs').replace('God Wars Dungeon','GWD').replace('Tombs of Amascut','ToA').replace('Theatre of Blood','ToB').replace('Chambers of Xeric','CoX').replace('Perilous Moons','Moons').slice(0,16)}
 function teamBases(){const perimeter=[];for(let q=-7;q<=7;q++)for(let r=-7;r<=7;r++)if(axialDistance(q,r)===7)perimeter.push({q,r});perimeter.sort((a,b)=>Math.atan2(Math.sqrt(3)*(a.r+a.q/2),1.5*a.q)-Math.atan2(Math.sqrt(3)*(b.r+b.q/2),1.5*b.q));return Array.from({length:teamCount},(_,i)=>perimeter[Math.floor(i*perimeter.length/teamCount)]);}
 function buildTiles(){
  const coords=[];for(let q=-7;q<=7;q++)for(let r=-7;r<=7;r++){const d=axialDistance(q,r);if(d<=7)coords.push({q,r,d,angle:angleOf(q,r)})}
  coords.sort((a,b)=>a.d-b.d||a.angle-b.angle);
  const placed=new Map();
- const pools={outer,middle};
- function expandedPool(pool,count){const bag=[];for(let i=0;i<count;i++)bag.push(pool[i%pool.length]);return bag}
- function placeDifficultyTiers(){
-  const tierCells={middle:coords.filter(c=>c.d>=3&&c.d<=4),outer:coords.filter(c=>c.d>=5)};
-  const groups=new Map();
-  for(const tier of ['middle','outer'])for(const challenge of expandedPool(pools[tier],tierCells[tier].length)){if(!groups.has(challenge[0]))groups.set(challenge[0],{boss:challenge[0],middle:[],outer:[]});groups.get(challenge[0])[tier].push(challenge)}
-  const list=[...groups.values()].sort((a,b)=>(b.middle.length+b.outer.length)-(a.middle.length+a.outer.length));
-  const capacities=[0,1,2].map(color=>({middle:tierCells.middle.filter(c=>(c.q-c.r+30)%3===color).length,outer:tierCells.outer.filter(c=>(c.q-c.r+30)%3===color).length}));
-  const remaining=capacities.map(x=>({...x})),assignment=new Map();
-  function partition(i){if(i===list.length)return true;const g=list[i];for(let color=0;color<3;color++){if(remaining[color].middle<g.middle.length||remaining[color].outer<g.outer.length)continue;remaining[color].middle-=g.middle.length;remaining[color].outer-=g.outer.length;assignment.set(g.boss,color);if(partition(i+1))return true;remaining[color].middle+=g.middle.length;remaining[color].outer+=g.outer.length;assignment.delete(g.boss)}return false}
-  if(!partition(0))throw new Error('Unable to balance challenge colors');
-  for(const tier of ['middle','outer'])for(let color=0;color<3;color++){
-   const cells=tierCells[tier].filter(c=>(c.q-c.r+30)%3===color).sort((a,b)=>directness(b)-directness(a)||a.angle-b.angle);
-   const challenges=list.filter(g=>assignment.get(g.boss)===color).flatMap(g=>g[tier]).sort((a,b)=>b[2]-a[2]||a[0].localeCompare(b[0]));
-   cells.forEach((cell,i)=>cell.challenge=challenges[i]);
-  }
+ function rotations(q,r){const result=[];for(let i=0;i<6;i++){result.push({q,r});[q,r]=[-r,q+r]}return result}
+ function orbitKey(cell){return rotations(cell.q,cell.r).map(c=>coordKey(c.q,c.r)).sort()[0]}
+ for(let d=1;d<=7;d++){
+  const ring=coords.filter(c=>c.d===d),keys=[...new Set(ring.map(orbitKey))].sort(),challenges=symmetricRings[d];
+  if(d===1)ring.sort((a,b)=>a.angle-b.angle).forEach((cell,i)=>cell.challenge=challenges[i%2]);
+  else ring.forEach(cell=>cell.challenge=challenges[keys.indexOf(orbitKey(cell))%challenges.length]);
  }
- const byRing={1:coords.filter(c=>c.d===1),2:coords.filter(c=>c.d===2)};
- byRing[1].forEach((cell,i)=>cell.challenge=ring1[i%2]);
- byRing[2].forEach((cell,i)=>cell.challenge=ring2[i%4]);
- placeDifficultyTiers();
  coords.forEach(cell=>{
   let challenge=cell.challenge;
   if(cell.d===0)challenge=vault;
@@ -91,7 +84,7 @@ function render(){board.innerHTML='';const s=28,bases=teamBases(),active=Array.f
   if(baseTeam>=0){poly.style.fill=`color-mix(in srgb, ${colors[baseTeam]} 34%, #181b20)`;const circle=document.createElementNS(SVG_NS,'circle');circle.setAttribute('cx',cx);circle.setAttribute('cy',cy);circle.setAttribute('r',s-4);circle.setAttribute('class','base-ring');circle.style.stroke=colors[baseTeam];g.append(circle);const bt=document.createElementNS(SVG_NS,'text');bt.setAttribute('x',cx);bt.setAttribute('y',cy+3);bt.setAttribute('class','base-label');bt.textContent=`BASE ${baseTeam+1}`;g.append(bt)}
  });board.append(g);renderLegend();}
 function fit(){const rect=viewport.getBoundingClientRect();view.scale=Math.min(rect.width/720,rect.height/720);view.x=rect.width/2;view.y=rect.height/2;render()}
-function selectTile(t){selected=t;$('emptyState').hidden=true;$('tileDetails').hidden=false;$('panel').classList.add('open');const baseTeam=teamBases().findIndex(b=>b.q===t.q&&b.r===t.r),base=baseTeam>=0,claim=claims[t.id];if(claim){$('claimTeam').value=claim.team;$('claimPlayer').value=claim.player||'';$('claimProof').value=claim.proof||''}else{$('claimTeam').value=viewTeam;$('claimPlayer').value='';$('claimProof').value=''}$('tileId').textContent=base?`Protected starting tile`:`${t.id} · ${t.tier} tier`;$('bossName').textContent=base?`Team ${teamNames[baseTeam]} Base`:t.boss;$('dropName').textContent=base?'No PvM challenge is assigned to this tile.':t.drop;$('tierName').textContent=base?'Base':t.tier[0].toUpperCase()+t.tier.slice(1);$('distance').textContent=base?'Perimeter':t.d===0?'Center':`${t.d} ring${t.d===1?'':'s'}`;$('difficulty').textContent=base?'—':t.d<=2?'Final barrier':['','Low','Moderate','Challenging','Hard','Severe'][t.difficulty];$('routeType').textContent=base?'Starting point':t.d<=2?'Required':t.directness>.66?'Direct shortcut':t.directness<.34?'Wide detour':'Side route';const owner=ownerFor(t),claimingTeam=Number($('claimTeam').value||viewTeam),eligible=isEligible(t,claimingTeam);$('tileOwner').textContent=base?`Team ${teamNames[baseTeam]}`:owner===null?'Unclaimed':`Team ${teamNames[owner]}`;$('tileStatus').textContent=base?'Protected':owner===null?'Available':activeSet(owner).has(t.id)?'Active':'Inactive';$('eligibility').textContent=base?'Cannot be captured':eligible?`Open to ${teamNames[claimingTeam]}`:`Blocked for ${teamNames[claimingTeam]}`;$('claimType').textContent=base?'None':owner===null?'New capture':owner===claimingTeam?'Already owned':'Steal';$('claimButton').textContent=base?'Protected base':owner===null?'Capture tile':'Steal tile';$('claimButton').disabled=!eligible;$('correctButton').disabled=!claim;$('removeButton').disabled=!claim;render()}
+function selectTile(t){selected=t;$('emptyState').hidden=true;$('tileDetails').hidden=false;$('panel').classList.add('open');const baseTeam=teamBases().findIndex(b=>b.q===t.q&&b.r===t.r),base=baseTeam>=0,claim=claims[t.id];if(claim){$('claimTeam').value=claim.team;$('claimPlayer').value=claim.player||'';$('claimProof').value=claim.proof||''}else{$('claimTeam').value=viewTeam;$('claimPlayer').value='';$('claimProof').value=''}$('tileId').textContent=base?`Protected starting tile`:`${t.id} · ${t.tier} tier`;$('bossName').textContent=base?`Team ${teamNames[baseTeam]} Base`:t.boss;$('dropName').textContent=base?'No PvM challenge is assigned to this tile.':t.drop;$('tierName').textContent=base?'Base':t.tier==='inner'?'Gold':t.tier[0].toUpperCase()+t.tier.slice(1);$('distance').textContent=base?'Perimeter':t.d===0?'Center':`${t.d} ring${t.d===1?'':'s'}`;$('difficulty').textContent=base?'—':t.d<=4?'Final barrier':['','Low','Moderate','Challenging','Hard','Severe'][t.difficulty];$('routeType').textContent=base?'Starting point':t.d<=4?'Gold route':t.directness>.66?'Direct shortcut':t.directness<.34?'Wide detour':'Side route';const owner=ownerFor(t),claimingTeam=Number($('claimTeam').value||viewTeam),eligible=isEligible(t,claimingTeam);$('tileOwner').textContent=base?`Team ${teamNames[baseTeam]}`:owner===null?'Unclaimed':`Team ${teamNames[owner]}`;$('tileStatus').textContent=base?'Protected':owner===null?'Available':activeSet(owner).has(t.id)?'Active':'Inactive';$('eligibility').textContent=base?'Cannot be captured':eligible?`Open to ${teamNames[claimingTeam]}`:`Blocked for ${teamNames[claimingTeam]}`;$('claimType').textContent=base?'None':owner===null?'New capture':owner===claimingTeam?'Already owned':'Steal';$('claimButton').textContent=base?'Protected base':owner===null?'Capture tile':'Steal tile';$('claimButton').disabled=!eligible;$('correctButton').disabled=!claim;$('removeButton').disabled=!claim;render()}
 function renderLegend(){const counts=Array.from({length:teamCount},(_,i)=>tiles.filter(t=>ownerFor(t)===i).length),options=Array.from({length:teamCount},(_,i)=>`<option value="${i}">Team ${teamNames[i]}</option>`).join(''),currentClaim=Number($('claimTeam').value);$('teamLegend').innerHTML=Array.from({length:teamCount},(_,i)=>`<div class="legend-row"><span><i class="team-swatch" style="background:${colors[i]}"></i>Team ${teamNames[i]}</span><b>${counts[i]} tiles · ${eligibleSet(i).size} targets</b></div>`).join('');$('claimTeam').innerHTML=options;$('viewTeam').innerHTML=options;$('viewTeam').value=viewTeam;$('claimTeam').value=currentClaim<teamCount?currentClaim:viewTeam}
 function syncStatus(text,state=''){$('syncStatus').textContent=text;$('syncStatus').className=`sync-status ${state}`}
 async function saveEventState(){
