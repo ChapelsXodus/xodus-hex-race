@@ -16,8 +16,8 @@
     <div class="controls">
       <span id="syncStatus" class="sync-status" aria-live="polite">Connecting…</span>
       <label>Teams <select id="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
-      <label>Targets <select id="viewTeam"></select></label>
-      <button id="modeButton" class="button">Organizer mode</button>
+      <label>View <select id="viewTeam"></select></label>
+      <button id="modeButton" class="button">Team sign in</button>
       <button id="fitButton" class="icon-button" title="Center map">⌖</button>
       <button id="zoomOut" class="icon-button" title="Zoom out">−</button>
       <button id="zoomIn" class="icon-button" title="Zoom in">+</button>
@@ -27,13 +27,14 @@
   <main>
     <section class="map-shell" aria-label="Hex race board">
       <div class="map-status">
-        <span><i class="dot outer"></i> Outer <b>108</b></span>
-        <span><i class="dot middle"></i> Middle <b>42</b></span>
-        <span><i class="dot inner"></i> Inner <b>18</b></span>
+        <span><i class="dot outer"></i> Outer <b>84</b></span>
+        <span><i class="dot middle"></i> Middle <b>66</b></span>
+        <span><i class="dot inner"></i> Gold <b>60</b></span>
+        <span><i class="dot key"></i> Keys <b>6</b></span>
         <span><i class="dot vault"></i> Vault <b>1</b></span>
       </div>
       <div id="viewport">
-        <svg id="board" role="img" aria-label="A symmetrical 169 tile hex map"></svg>
+        <svg id="board" role="img" aria-label="A symmetrical 217 tile hex map"></svg>
       </div>
       <div class="map-hint">Drag to move · Scroll to zoom · Select a tile for details</div>
     </section>
@@ -90,10 +91,15 @@
 
   <dialog id="loginDialog">
     <form id="loginForm">
-      <h2>Organizer sign in</h2>
-      <p>Clan members do not need an account. Sign in only to update the live board.</p>
-      <label>Email<input id="loginEmail" type="email" autocomplete="username" required></label>
-      <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+      <h2>Event sign in</h2>
+      <p>Select your team and enter its shared password. Spectators can close this window and continue without signing in.</p>
+      <label>Account<select id="loginRole">
+        <option value="0">Team Crimson</option><option value="1">Team Azure</option><option value="2">Team Verdant</option>
+        <option value="3">Team Violet</option><option value="4">Team Ember</option><option value="5">Team Cyan</option>
+        <option value="organizer">Organizer</option>
+      </select></label>
+      <label id="loginEmailRow" hidden>Organizer email<input id="loginEmail" type="email" autocomplete="username"></label>
+      <label>Shared password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
       <p id="loginError" class="login-error" role="alert"></p>
       <div class="dialog-actions"><button id="cancelLogin" type="button" class="button">Cancel</button><button type="submit" class="button gold login-submit">Sign in</button></div>
     </form>
