@@ -1,111 +1,63 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0b0c0e">
-  <title>Xodus · Hex Race to the Vault</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#211e19"><title>Xodus — Race to the Vault | The Fractured Archive</title><link rel="stylesheet" href="styles.css"></head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">X</span>
-      <div><strong>XODUS</strong><span>HEX RACE TO THE VAULT</span></div>
-    </div>
-    <div class="controls">
-      <span id="syncStatus" class="sync-status" aria-live="polite">Connecting…</span>
-      <label>Teams <select id="teamCount"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
-      <label>View <select id="viewTeam"></select></label>
-      <button id="modeButton" class="button">Team sign in</button>
-      <button id="fitButton" class="icon-button" title="Center map">⌖</button>
-      <button id="zoomOut" class="icon-button" title="Zoom out">−</button>
-      <button id="zoomIn" class="icon-button" title="Zoom in">+</button>
-    </div>
-  </header>
-
-  <main>
-    <section class="map-shell" aria-label="Hex race board">
-      <div class="map-status">
-        <span><i class="dot outer"></i> Outer <b>84</b></span>
-        <span><i class="dot middle"></i> Middle <b>66</b></span>
-        <span><i class="dot inner"></i> Gold <b>60</b></span>
-        <span><i class="dot key"></i> Keys <b>6</b></span>
-        <span><i class="dot vault"></i> Vault <b>1</b></span>
-      </div>
-      <div id="viewport">
-        <svg id="board" role="img" aria-label="A symmetrical 217 tile hex map"></svg>
-      </div>
-      <div class="map-hint">Drag to move · Scroll to zoom · Select a tile for details</div>
+<header class="hero" role="banner" aria-label="Xodus — Race to the Vault, The Fractured Archive">
+  <h1 class="sr-only">Xodus — Race to the Vault: The Fractured Archive</h1>
+  <div class="hero-engraving"><span class="crest-small">X O D U S</span><strong>RACE TO THE VAULT</strong><small>THE FRACTURED ARCHIVE</small></div><span class="hero-edition">V2 · THE EXPEDITION</span>
+</header>
+<div class="command-rail">
+  <div class="command-title"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4Ij48ZGVmcz48cmFkaWFsR3JhZGllbnQgaWQ9ImciPjxzdG9wIHN0b3AtY29sb3I9IiM3YWY5YjkiIHN0b3Atb3BhY2l0eT0iLjQiLz48c3RvcCBvZmZzZXQ9Ii41NSIgc3RvcC1jb2xvcj0iIzE4YjU2YyIgc3RvcC1vcGFjaXR5PSIuMjMiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMwNjE1MTAiIHN0b3Atb3BhY2l0eT0iMCIvPjwvcmFkaWFsR3JhZGllbnQ+PGZpbHRlciBpZD0iZ2xvdyI+PGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMy4yIiByZXN1bHQ9ImIiLz48ZmVNZXJnZT48ZmVNZXJnZU5vZGUgaW49ImIiLz48ZmVNZXJnZU5vZGUgaW49IlNvdXJjZUdyYXBoaWMiLz48L2ZlTWVyZ2U+PC9maWx0ZXI+PC9kZWZzPjxjaXJjbGUgY3g9IjY0IiBjeT0iNjQiIHI9IjYzIiBmaWxsPSJ1cmwoI2cpIi8+PGcgc3Ryb2tlPSIjNTZmZmI2IiBzdHJva2Utd2lkdGg9IjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgZmlsbD0ibm9uZSIgZmlsdGVyPSJ1cmwoI2dsb3cpIj48Y2lyY2xlIGN4PSI2NCIgY3k9IjYzIiByPSI0MyIgb3BhY2l0eT0iLjU4Ii8+PHBhdGggZD0iTTY0IDIxIFE5MSA1MSA5MyA4NCBRNjQgNzQgMzcgODQgUTM5IDUxIDY0IDIxWiIvPjxwYXRoIGQ9Ik0zOCA4MyBRNjMgODkgOTEgODMgTTY0IDIzIEw2NCAxMDAgTTM5IDg1IEw4OSA1NSBNODkgODUgTDM5IDU1IiBvcGFjaXR5PSIuNjUiLz48L2c+PC9zdmc+" alt=""/><span><b>THE FRACTURED ARCHIVE</b><small>217 HEXES · 6 RELIC SHRINES · 1 VAULT</small></span></div>
+  <div class="command-actions">
+    <span id="syncStatus" class="sync-status">Connecting…</span>
+    <label>PARTIES <select id="teamCount" aria-label="Number of teams"><option>2</option><option>3</option><option>4</option><option>5</option><option selected>6</option></select></label>
+    <label>FOLLOW <select id="viewTeam" aria-label="View team"></select></label>
+    <button class="button" id="modeButton" type="button">Team sign in</button>
+  </div>
+</div>
+<main class="game-layout">
+  <div class="expedition-column">
+    <section class="map-shell" aria-label="Interactive expedition board">
+      <div class="map-backing" aria-hidden="true"></div><div class="archive-ornament left" aria-hidden="true"></div><div class="archive-ornament right" aria-hidden="true"></div>
+      <div class="map-crest" aria-hidden="true">✦</div>
+      <div class="map-heading"><span class="kicker">ANCIENT TERRITORIES</span><span>THE EXPEDITION BOARD</span></div>
+      <div class="map-status"><span><i class="dot outer"></i>Outer <b>84</b></span><span><i class="dot middle"></i>Middle <b>66</b></span><span><i class="dot inner"></i>Inner <b>60</b></span><span><i class="dot key"></i>Relics <b>6</b></span><span><i class="dot vault"></i>Vault <b>1</b></span></div>
+      <div id="viewport" class="viewport" role="group" aria-label="Pan and zoom map"><svg id="board" aria-label="217 clickable hex territories"></svg><canvas id="archive3d" aria-label="Rotatable 3D hexagonal expedition map" tabindex="0"></canvas></div>
+      <div class="map-tools" aria-label="Map controls"><button class="map-tool" id="zoomIn" title="Zoom in" aria-label="Zoom in">+</button><button class="map-tool" id="zoomOut" title="Zoom out" aria-label="Zoom out">−</button><button class="map-tool fit-tool" id="fitButton" title="Reset camera" aria-label="Reset camera">⌖</button><button class="map-tool camera-tool" id="view3dButton" title="Switch between isometric and top-down" aria-label="Toggle top-down perspective">2D</button></div>
+      <div class="map-corner tl"></div><div class="map-corner tr"></div><div class="map-corner bl"></div><div class="map-corner br"></div>
+      <div class="map-hint">DRAG TO ROTATE <span>✦</span> ARROW KEYS TO ORBIT / TILT <span>✦</span> SCROLL TO ZOOM <span>✦</span> TAP TO EXAMINE</div>
     </section>
-
-    <aside id="panel" class="panel">
-      <div class="panel-empty" id="emptyState">
-        <div class="mini-hex">?</div>
-        <h2>Select a tile</h2>
-        <p>Inspect its boss, required drop, ownership, and route status.</p>
+    <section class="chat-frame" aria-label="Expedition journal">
+      <div class="chat-header"><span class="chat-wax">✥</span><span>EXPEDITION JOURNAL</span><span class="chat-metadata">EVENT ACTIVITY</span></div>
+      <div id="journalFeed" class="chat-paper" aria-live="polite"><p class="system-message">Welcome to the Fractured Archive. Choose a territory to inspect its challenge.</p></div>
+      <div class="chat-footer"><button id="journalLatest" class="chat-tag" type="button" title="Jump to latest activity">▼ LATEST</button><span class="chat-help">All captures, steals and relic discoveries are recorded here.</span><div class="preview-tools" id="previewTools" hidden><button id="previewExpand" type="button">Demo: Expand</button><button id="previewKeys" type="button">Demo: Key halves</button><button id="previewReset" type="button">Reset demo</button></div></div>
+    </section>
+  </div>
+  <aside class="panel" id="panel" aria-label="Expedition records and selected territory">
+    <div class="side-header"><span class="side-diamond">✥</span><span>THE ARCHIVE RECORDS</span><span class="side-diamond">✥</span></div>
+    <div class="side-grid">
+      <div class="left-column">
+        <section class="stone-panel satchel-panel">
+          <h2 class="stone-heading">Archive Key</h2>
+          <div id="keyInventory" class="key-inventory"></div>
+          <div class="key-actions"><button id="combineKey" class="button gold" hidden>Combine Archive Key</button><button id="revokeKey" class="button danger" hidden>Correct assembled key</button></div>
+        </section>
+        <section class="stone-panel teams-panel"><h2 class="stone-heading">Expedition Parties</h2><div class="teams-label"><span>PARTY</span><span>TERRITORY</span></div><div id="teamLegend" class="legend"></div></section>
+        <section class="stone-panel admin-panel" id="adminPanel" hidden><h2 class="stone-heading">Organizer Desk</h2><div class="admin-actions"><button class="button" id="lockButton">Lock setup</button><button class="button" id="undoButton">Undo</button><button class="button danger" id="resetButton">Reset event</button></div><h3 class="admin-title">Event Ledger</h3><div id="eventHistory" class="event-history"></div><button id="signOutButton" class="button sign-out">Sign out</button></section>
       </div>
-      <div id="tileDetails" hidden>
-        <div class="eyebrow" id="tileId"></div>
-        <h2 id="bossName"></h2>
-        <p class="drop" id="dropName"></p>
-        <div class="detail-grid">
-          <div><span>Tier</span><strong id="tierName"></strong></div>
-          <div><span>Status</span><strong id="tileStatus"></strong></div>
-          <div><span>Owner</span><strong id="tileOwner"></strong></div>
-          <div><span>Distance</span><strong id="distance"></strong></div>
-          <div><span>Difficulty</span><strong id="difficulty"></strong></div>
-          <div><span>Route</span><strong id="routeType"></strong></div>
-          <div><span>Eligibility</span><strong id="eligibility"></strong></div>
-          <div><span>Claim type</span><strong id="claimType"></strong></div>
-        </div>
-        <div class="organizer" id="organizerTools" hidden>
-          <h3>Record an approved claim</h3>
-          <label>Team<select id="claimTeam"></select></label>
-          <label>Player<input id="claimPlayer" placeholder="RuneScape name"></label>
-          <label>Screenshot link<input id="claimProof" placeholder="Discord message or image URL"></label>
-          <button id="claimButton" class="button gold">Capture tile</button>
-          <div class="admin-actions"><button id="correctButton" class="button">Save correction</button><button id="removeButton" class="button danger">Remove claim</button></div>
-        </div>
+      <div class="right-column">
+        <section class="parchment-frame"><div class="scroll-top"><span>SELECTED TERRITORY</span></div><div class="parchment-surface">
+          <div id="emptyState" class="panel-empty"><div class="parchment-emblem">✥</div><h2>Examine a Tile</h2><p>Choose a territory on the board to uncover its record, PvM objective and ownership.</p><div class="parchment-rule">✦ ✦ ✦</div><p class="small-note">Challenges remain concealed until your party reaches them.</p></div>
+          <section id="tileDetails" hidden><div class="tile-tag" id="tileId"></div><div class="tile-illustration" aria-hidden="true"><div class="tile-illustration-hex">⬡</div></div><h2 class="boss-name" id="bossName"></h2><div class="parchment-rule">⚔ PvM CHALLENGE ⚔</div><p id="dropName" class="drop"></p><div class="detail-grid">
+            <div><span>Region</span><strong id="tierName"></strong></div><div><span>Distance</span><strong id="distance"></strong></div><div><span>Difficulty</span><strong id="difficulty"></strong></div><div><span>Route</span><strong id="routeType"></strong></div><div><span>Owner</span><strong id="tileOwner"></strong></div><div><span>Status</span><strong id="tileStatus"></strong></div><div><span>Eligibility</span><strong id="eligibility"></strong></div><div><span>Claim</span><strong id="claimType"></strong></div>
+          </div></section>
+          <section class="organizer" id="organizerTools" hidden><div class="parchment-rule">⚒ ORGANIZER · CLAIM ⚒</div><label>TEAM <select id="claimTeam"></select></label><label>PLAYER <input id="claimPlayer" placeholder="Player name"></label><label>PROOF / NOTES <input id="claimProof" placeholder="Evidence link or notes"></label><button class="button gold" id="claimButton" disabled>Capture tile</button><div class="admin-actions"><button class="button" id="correctButton" disabled>Correct</button><button class="button danger" id="removeButton" disabled>Remove</button></div></section>
+          <div class="scroll-end" aria-hidden="true">✥</div>
+        </div></section>
       </div>
-      <div class="legend" id="teamLegend"></div>
-      <section class="admin-panel" id="adminPanel" hidden>
-        <h3>Organizer tools</h3>
-        <div class="admin-actions">
-          <button id="lockButton" class="button">Lock setup</button>
-          <button id="undoButton" class="button">Undo last</button>
-          <button id="resetButton" class="button danger">Reset event</button>
-        </div>
-        <h3>Recent activity</h3>
-        <div id="eventHistory" class="event-history"></div>
-        <button id="signOutButton" class="button sign-out">Sign out organizer</button>
-      </section>
-    </aside>
-  </main>
-
-  <dialog id="resetDialog">
-    <h2>Reset the event?</h2>
-    <p>This removes every capture, steal, correction, and history entry. Team count and challenge placement remain unchanged.</p>
-    <div class="dialog-actions"><button id="cancelReset" class="button">Cancel</button><button id="confirmReset" class="button danger">Reset everything</button></div>
-  </dialog>
-
-  <dialog id="loginDialog">
-    <form id="loginForm">
-      <h2>Event sign in</h2>
-      <p>Select your team and enter its shared password. Spectators can close this window and continue without signing in.</p>
-      <label>Account<select id="loginRole">
-        <option value="0">Team Crimson</option><option value="1">Team Azure</option><option value="2">Team Verdant</option>
-        <option value="3">Team Violet</option><option value="4">Team Ember</option><option value="5">Team Cyan</option>
-        <option value="organizer">Organizer</option>
-      </select></label>
-      <label id="loginEmailRow" hidden>Organizer email<input id="loginEmail" type="email" autocomplete="username"></label>
-      <label>Shared password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
-      <p id="loginError" class="login-error" role="alert"></p>
-      <div class="dialog-actions"><button id="cancelLogin" type="button" class="button">Cancel</button><button type="submit" class="button gold login-submit">Sign in</button></div>
-    </form>
-  </dialog>
-
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="app.js"></script>
-</body>
-</html>
+    </div>
+  </aside>
+</main>
+<dialog id="resetDialog"><h2>Reset this expedition?</h2><p>This removes all claims, key halves and assembled keys from the live event.</p><div class="dialog-actions"><button class="button" id="cancelReset">Cancel</button><button class="button danger" id="confirmReset">Reset event</button></div></dialog>
+<dialog id="loginDialog"><form id="loginForm"><h2>Enter the Archive</h2><p>Use your assigned team or organizer credentials.</p><label>Account<select id="loginRole"><option value="0">Team Crimson</option><option value="1">Team Azure</option><option value="2">Team Verdant</option><option value="3">Team Violet</option><option value="4">Team Ember</option><option value="5">Team Cyan</option><option value="organizer">Organizer</option></select></label><label id="loginEmailRow" hidden>Organizer email<input type="email" id="loginEmail"></label><label>Password<input id="loginPassword" type="password" required></label><p id="loginError" class="login-error"></p><div class="dialog-actions"><button type="button" class="button" id="cancelLogin">Cancel</button><button type="submit" class="button gold">Sign in</button></div></form></dialog>
+<div id="toast" class="toast" role="status"></div><script type="module" src="app.js"></script>
+</body></html>
