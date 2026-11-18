@@ -4,9 +4,9 @@ import { doc, getDoc, getFirestore, onSnapshot, serverTimestamp, setDoc } from '
 
 const firebaseApp=initializeApp({
  apiKey:'AIzaSyBPF1Mn6QLvIkz76FfkxovChjUiG_WaA9U',
- authDomain:'xodus-archive-v2-hex-race.firebaseapp.com',
- projectId:'xodus-archive-v2-hex-race',
- storageBucket:'xodus-archive-v2-hex-race.firebasestorage.app',
+ authDomain:'xodus-hex-race.firebaseapp.com',
+ projectId:'xodus-hex-race',
+ storageBucket:'xodus-hex-race.firebasestorage.app',
  messagingSenderId:'867509300673',
  appId:'1:867509300673:web:f1abe5aee9f91ad0dad340'
 });
@@ -435,4 +435,3 @@ window.addEventListener('resize',fit);fit();
  window.addEventListener('resize',()=>requestAnimationFrame(draw));
  requestAnimationFrame(draw);
 })();
-
