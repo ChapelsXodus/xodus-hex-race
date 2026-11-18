@@ -147,10 +147,59 @@ function applyGwdRaidProgression(original){
  return result;
 }
 
-function refreshChallenges(){tiles=buildTiles();if(selected)selected=tiles.find(t=>t.id===selected.id)||null;if(selected)selectTile(selected);else render()}
+function refreshChallenges(){tiles=buildTiles();if(selected)selected=tiles.find(t=>t.id===selected.id)||null;if(selected)selectTile(selected);else render();renderOrganizerChallengeList()}
+let organizerChallengeLoaded=false;
+function organizerChallengeStatus(message,failed=false){
+ const el=$('organizerChallengeStatus');if(el){el.textContent=message;el.classList.toggle('error',failed)}
+}
+function renderOrganizerChallengeList(){
+ const el=$('organizerChallengeRows');if(!el)return;
+ // Never put the complete challenge list in the DOM of a team or a signed-out visitor.
+ if(!organizer||!organizerChallengeLoaded){el.replaceChildren();return}
+ const fragment=document.createDocumentFragment();
+ for(const tile of tiles){
+  if(isBase(tile))continue;
+  const challenge=(isKey(tile)||tile.tier==='vault')?tile:challengeMap[tile.id];
+  if(!challenge)continue;
+  const button=document.createElement('button');button.type='button';button.className='challenge-row';button.dataset.tileId=tile.id;
+  const title=document.createElement('strong');title.textContent=`${tile.id} · ${challenge.boss}`;
+  const requirement=document.createElement('small');requirement.textContent=challenge.drop;
+  button.append(title,requirement);fragment.append(button);
+ }
+ el.replaceChildren(fragment);
+}
 async function loadOrganizerChallenges(){
- try{const snapshot=await getDoc(doc(db,'events',EVENT_ID,'private','config'));if(!snapshot.exists()||!snapshot.data().boardKey)throw new Error('Missing board key');challengeMap=applyGwdRaidProgression(await decryptChallengeManifest(snapshot.data().boardKey));refreshChallenges();await publishTeamReveals();syncStatus('Live · organizer','online')}
- catch(error){console.error(error);challengeMap={};refreshChallenges();syncStatus('Security setup needed','error');toast('Add the private board key in Firebase to unlock organizer challenges')}
+ if(auth.currentUser?.uid!==ORGANIZER_UID||!organizer)return;
+ organizerChallengeStatus('Loading the complete PvM challenge list…');
+ try{
+  // The complete manifest stays encrypted in the website files. Only the organizer
+  // may read the private Firestore board key and decrypt it in the signed-in browser.
+  const snapshot=await getDoc(doc(db,'events',EVENT_ID,'private','config'));
+  const boardKey=snapshot.exists()?snapshot.data().boardKey:null;
+  if(!boardKey)throw new Error('The private boardKey is missing from events/main/private/config.');
+  const fullManifest=await decryptChallengeManifest(boardKey);
+  if(!fullManifest||!Object.keys(fullManifest).length)throw new Error('The decrypted PvM manifest is empty.');
+  challengeMap=applyGwdRaidProgression(fullManifest);
+  organizerChallengeLoaded=true;
+  refreshChallenges();
+  const ordinaryTiles=tiles.filter(tile=>!isBase(tile)&&!isKey(tile)&&tile.tier!=='vault');
+  const missing=ordinaryTiles.filter(tile=>!challengeMap[tile.id]).length;
+  organizerChallengeStatus(missing
+   ? `${Object.keys(challengeMap).length} challenge records loaded, but ${missing} ordinary territories have no objective. Check the private challenge manifest.`
+   : `Full challenge list loaded (${ordinaryTiles.length} ordinary territories, 6 key shrines, and the Vault). Select any tile or browse below.`,!!missing);
+  syncStatus(missing?'Organizer · incomplete PvM list':'Live · organizer challenges loaded',missing?'error':'online');
+ }catch(error){
+  console.error('Organizer challenge load failed:',error);
+  const hadChallenges=organizerChallengeLoaded;
+  if(!hadChallenges){organizerChallengeLoaded=false;challengeMap={};refreshChallenges()}
+  const detail=error?.code==='permission-denied'?'Firebase access denied for the private board key. Check the organizer account and Firestore rules.':error?.message||'Could not decrypt the private challenge manifest.';
+  organizerChallengeStatus(`${hadChallenges?'Could not refresh (previous list retained)':'Challenges unavailable'}: ${detail}`,true);
+  syncStatus('Organizer challenge load failed','error');return;
+ }
+ // Team-reveal publication is a separate operation: a permission error here must
+ // never erase the organizer's complete, successfully decrypted challenge list.
+ try{await publishTeamReveals()}
+ catch(error){console.error('Team reveal publication failed:',error);organizerChallengeStatus(`All organizer challenges loaded. Team reveal sync needs attention: ${error?.message||'write failed'}`,true)}
 }
 function subscribeTeamChallenges(team){if(teamChallengeUnsubscribe)teamChallengeUnsubscribe();teamChallengeUnsubscribe=onSnapshot(doc(db,'events',EVENT_ID,'teams',`team${team+1}`),snapshot=>{challengeMap=snapshot.exists()&&snapshot.data().boardVersion===BOARD_VERSION?snapshot.data().challenges||{}:{};refreshChallenges();syncStatus(`Live · Team ${teamNames[team]}`,'online')},error=>{console.error(error);challengeMap={};refreshChallenges();syncStatus('Team view unavailable','error')})}
 async function publishTeamReveals(){
@@ -160,7 +209,7 @@ async function publishTeamReveals(){
 function polygon(cx,cy,s){return Array.from({length:6},(_,i)=>{const a=Math.PI/180*(60*i);return `${cx+s*Math.cos(a)},${cy+s*Math.sin(a)}`}).join(' ')}
 function render(){board.innerHTML='';const s=28,bases=teamBases(),active=Array.from({length:teamCount},(_,i)=>activeSet(i)),eligible=eligibleSet(viewTeam);const g=document.createElementNS(SVG_NS,'g');g.setAttribute('transform',`translate(${view.x} ${view.y}) scale(${view.scale})`);g.id='mapGroup';
  const defs=document.createElementNS(SVG_NS,'defs');defs.innerHTML=`<pattern id="ancientTileGrain" width="38" height="38" patternUnits="userSpaceOnUse"><path d="M1 6l7 2 4-3m12 7l5 2 4-2M6 28l4-4 8 2m14 4l-6 3" stroke="#1a271d" stroke-width="1.3" fill="none" opacity=".65"/><path d="M11 18l3-2M27 5l4 2M32 21l3-1M9 37l3-2" stroke="#ded2ab" stroke-width="1.2" fill="none" opacity=".35"/><circle cx="18" cy="8" r="1.2" fill="#273a2c"/><circle cx="34" cy="35" r="1.4" fill="#26362b"/></pattern>`;board.append(defs);
- tiles.forEach(t=>{const cx=1.5*s*t.q,cy=Math.sqrt(3)*s*(t.r+t.q/2),owner=ownerFor(t),baseTeam=bases.findIndex(b=>b.q===t.q&&b.r===t.r),revealed=(isKey(t)?canRevealKey(t):t.tier==='vault'||!!challengeMap[t.id]);const poly=document.createElementNS(SVG_NS,'polygon');poly.setAttribute('points',polygon(cx,cy,s-1.2));poly.setAttribute('class',`hex ${t.tier}${isKey(t)?` ${keyHalf(t)}`:''}${selected?.id===t.id?' selected':''}${eligible.has(t.id)?' eligible':''}${owner!==null&&!active[owner].has(t.id)?' inactive':''}${!revealed&&baseTeam<0?' concealed':''}`);poly.dataset.id=t.id;if(owner===null){const shades={outer:['#596050','#5f6251','#565d4c','#646654','#555d4d'],middle:['#787563','#817d68','#777461','#827e69','#75725d'],inner:['#a39473','#a0926e','#aa9977','#96896c','#a59b78']};const palette=shades[t.tier];if(palette)poly.style.fill=palette[Math.abs(t.q*17+t.r*29+97)%palette.length]}if(owner!==null){poly.style.fill=`color-mix(in srgb, ${colors[owner]} 30%, #746d58)`;poly.style.stroke=colors[owner];poly.style.strokeWidth='3.6';}if(eligible.has(t.id))poly.style.stroke=colors[viewTeam];const hint=document.createElementNS(SVG_NS,'title');hint.textContent=`${t.id} · ${isKey(t)?(revealed?(keyHalf(t)==='tooth'?'Tooth Half':'Loop Half'):'Unexplored Archive Key shrine'):t.tier==='vault'?'The Vault · Any TFA purple':revealed?t.boss:'Challenge concealed'}`;poly.append(hint);g.append(poly);
+ tiles.forEach(t=>{const cx=1.5*s*t.q,cy=Math.sqrt(3)*s*(t.r+t.q/2),owner=ownerFor(t),baseTeam=bases.findIndex(b=>b.q===t.q&&b.r===t.r),revealed=(isKey(t)?canRevealKey(t):t.tier==='vault'||!!challengeMap[t.id]);const poly=document.createElementNS(SVG_NS,'polygon');poly.setAttribute('points',polygon(cx,cy,s-1.2));poly.setAttribute('class',`hex ${t.tier}${isKey(t)?` ${keyHalf(t)}`:''}${selected?.id===t.id?' selected':''}${eligible.has(t.id)?' eligible':''}${owner!==null&&!active[owner].has(t.id)?' inactive':''}${!revealed&&baseTeam<0?' concealed':''}`);poly.dataset.id=t.id;if(owner===null){const shades={outer:['#596050','#5f6251','#565d4c','#646654','#555d4d'],middle:['#787563','#817d68','#777461','#827e69','#75725d'],inner:['#a39473','#a0926e','#aa9977','#96896c','#a59b78']};const palette=shades[t.tier];if(palette)poly.style.fill=palette[Math.abs(t.q*17+t.r*29+97)%palette.length]}if(owner!==null){poly.style.fill=`color-mix(in srgb, ${colors[owner]} 61%, #474b41)`;poly.style.stroke=colors[owner];poly.style.strokeWidth='2.8';}if(eligible.has(t.id))poly.style.stroke=colors[viewTeam];const hint=document.createElementNS(SVG_NS,'title');hint.textContent=`${t.id} · ${isKey(t)?(revealed?(keyHalf(t)==='tooth'?'Tooth Half':'Loop Half'):'Unexplored Archive Key shrine'):t.tier==='vault'?'The Vault · Any TFA purple':revealed?t.boss:'Challenge concealed'}`;poly.append(hint);g.append(poly);
   // Each hex remains geometrically identical. Chiseled texture and hairline cracks sit above the fill.
   const grain=document.createElementNS(SVG_NS,'polygon');grain.setAttribute('points',polygon(cx,cy,s-2.7));grain.setAttribute('class','hex-stone-engraving');g.append(grain);
   const light=document.createElementNS(SVG_NS,'polyline');light.setAttribute('points',`${cx-s*.45},${cy-s*.60} ${cx+s*.40},${cy-s*.58} ${cx+s*.71},${cy-s*.12}`);light.setAttribute('class','hex-edge-light');g.append(light);
@@ -170,6 +219,7 @@ function render(){board.innerHTML='';const s=28,bases=teamBases(),active=Array.f
     if(t.d>=5){const moss=document.createElementNS(SVG_NS,'circle');moss.setAttribute('cx',cx+s*.41);moss.setAttribute('cy',cy+s*.41);moss.setAttribute('r',2.5+(variety%3));moss.setAttribute('class','hex-moss');g.append(moss)}
   }
   if(owner!==null){const border=document.createElementNS(SVG_NS,'polygon');border.setAttribute('points',polygon(cx,cy,s-4.5));border.setAttribute('class','hex-ownership');border.style.stroke=colors[owner];g.append(border)}
+  if(eligible.has(t.id)&&selected?.id!==t.id){const ring=document.createElementNS(SVG_NS,'polygon');ring.setAttribute('points',polygon(cx,cy,s-2.9));ring.setAttribute('class','hex-available-outline');ring.style.stroke=colors[viewTeam];g.append(ring)}
   if(isKey(t)||t.tier==='vault'){const ring=document.createElementNS(SVG_NS,'circle');ring.setAttribute('cx',cx);ring.setAttribute('cy',cy);ring.setAttribute('r',s*.68);ring.setAttribute('class',t.tier==='vault'?'hex-vault-ring':'hex-key-ring');g.append(ring)}
   const label=document.createElementNS(SVG_NS,'text');label.setAttribute('x',cx);label.setAttribute('y',cy+1);label.setAttribute('class','hex-label');label.textContent=baseTeam>=0?'':t.d===0?'':isKey(t)?'':view.scale<.84?'':!revealed?'?':shortBoss(t.boss);g.append(label);
   if(t.d===0||isKey(t)){const icon=document.createElementNS(SVG_NS,'image');const href=t.d===0?INLINE_ART['vault-sigil.svg']:revealed?INLINE_ART[keyHalf(t)+'.png']:null;const size=t.d===0?42:38;if(href)icon.setAttribute('href',href);else icon.setAttribute('href',INLINE_ART['vault-sigil.svg']);icon.setAttribute('x',cx-size/2);icon.setAttribute('y',cy-size/2);icon.setAttribute('width',size);icon.setAttribute('height',size);icon.setAttribute('class',`map-icon ${isKey(t)?'map-icon-key':''}`);icon.style.pointerEvents='none';g.append(icon)}
@@ -218,13 +268,15 @@ function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('sho
 $('teamCount').value=teamCount;$('teamCount').disabled=true;$('teamCount').onchange=e=>{if(!organizer)return;teamCount=Number(e.target.value);viewTeam=Math.min(viewTeam,teamCount-1);claims=Object.fromEntries(Object.entries(claims).filter(([,c])=>c.team<teamCount));tiles=buildTiles();recomputeKeyProgress();selected=null;$('emptyState').hidden=false;$('tileDetails').hidden=true;saveEventState();render()};
 $('viewTeam').onchange=e=>{if(authTeam!==null){e.target.value=authTeam;return}viewTeam=Number(e.target.value);$('claimTeam').value=viewTeam;localStorage.setItem('xodus-archive-v2-view-team',viewTeam);if(selected)selectTile(selected);else render()};
 $('claimTeam').onchange=()=>{};
-function setOrganizerMode(enabled){organizer=enabled&&auth.currentUser?.uid===ORGANIZER_UID;$('organizerTools').hidden=!organizer;$('adminPanel').hidden=!organizer;$('modeButton').classList.toggle('active',organizer);renderHistory()}
+function setOrganizerMode(enabled){organizer=enabled&&auth.currentUser?.uid===ORGANIZER_UID;$('organizerTools').hidden=!organizer;$('adminPanel').hidden=!organizer;$('modeButton').classList.toggle('active',organizer);renderOrganizerChallengeList();renderHistory()}
 function updateIdentityUI(){const signedIn=!!auth.currentUser;$('viewTeam').disabled=authTeam!==null;if(organizer)$('modeButton').textContent='Organizer mode: On';else if(auth.currentUser?.uid===ORGANIZER_UID)$('modeButton').textContent='Organizer mode';else if(authTeam!==null)$('modeButton').textContent=`Team ${teamNames[authTeam]} · Sign out`;else $('modeButton').textContent='Team sign in';$('signOutButton').textContent='Sign out';$('modeButton').classList.toggle('active',signedIn)}
-$('modeButton').onclick=async()=>{if(authTeam!==null){await signOut(auth);toast('Signed out');return}if(auth.currentUser?.uid===ORGANIZER_UID){setOrganizerMode(!organizer);updateIdentityUI();toast(organizer?'Organizer controls unlocked':'Organizer controls hidden');return}$('loginError').textContent='';$('loginDialog').showModal();$('loginPassword').focus()};
+$('modeButton').onclick=async()=>{if(authTeam!==null){await signOut(auth);toast('Signed out');return}if(auth.currentUser?.uid===ORGANIZER_UID){setOrganizerMode(!organizer);updateIdentityUI();if(organizer&&!organizerChallengeLoaded)await loadOrganizerChallenges();toast(organizer?'Organizer controls unlocked':'Organizer controls hidden');return}$('loginError').textContent='';$('loginDialog').showModal();$('loginPassword').focus()};
 $('loginRole').onchange=e=>{$('loginEmailRow').hidden=e.target.value!=='organizer';$('loginEmail').required=e.target.value==='organizer'};
 $('loginForm').onsubmit=async e=>{e.preventDefault();$('loginError').textContent='';const submit=e.submitter,choice=$('loginRole').value,email=choice==='organizer'?$('loginEmail').value.trim():TEAM_ACCOUNTS[Number(choice)].email;submit.disabled=true;try{await signInWithEmailAndPassword(auth,email,$('loginPassword').value);$('loginDialog').close();$('loginPassword').value=''}catch(error){console.error(error);$('loginError').textContent='The selected account or password was not accepted.'}finally{submit.disabled=false}};
 $('cancelLogin').onclick=()=>$('loginDialog').close();
 $('signOutButton').onclick=async()=>{await signOut(auth);toast('Signed out')};
+$('refreshOrganizerChallenges').onclick=()=>loadOrganizerChallenges();
+$('organizerChallengeRows').onclick=e=>{if(!organizer)return;const row=e.target.closest('[data-tile-id]');if(!row)return;const tile=tiles.find(t=>t.id===row.dataset.tileId);if(tile)selectTile(tile)};
 $('claimButton').onclick=()=>{if(!selected)return;const team=Number($('claimTeam').value);if(!isEligible(selected,team)){toast('That tile is not connected to active territory');return}const previous=claims[selected.id]?structuredClone(claims[selected.id]):null,event={team,player:$('claimPlayer').value.trim()||'Unrecorded',proof:$('claimProof').value.trim(),time:new Date().toISOString(),type:previous?'steal':'capture'},history=previous?.history?[...previous.history]:previous?[{team:previous.team,player:previous.player,proof:previous.proof,time:previous.time,type:previous.type||'capture'}]:[];history.push(event);claims[selected.id]={...event,history};awardKeyHalf(selected,team);recordChange(selected.id,previous,structuredClone(claims[selected.id]),event.type,`${selected.id} · Team ${teamNames[team]}`);toast(`${selected.id} ${event.type==='steal'?'stolen':'captured'} by Team ${teamNames[team]}`);selectTile(selected)};
 $('correctButton').onclick=()=>{if(!selected||!claims[selected.id]){toast('This tile has no claim to correct');return}const before=structuredClone(claims[selected.id]),team=Number($('claimTeam').value);claims[selected.id]={...claims[selected.id],team,player:$('claimPlayer').value.trim()||'Unrecorded',proof:$('claimProof').value.trim()};recordChange(selected.id,before,structuredClone(claims[selected.id]),'Correction',`${selected.id} · Team ${teamNames[team]}`);toast('Claim corrected');selectTile(selected)};
 $('removeButton').onclick=()=>{if(!selected||!claims[selected.id]){toast('This tile has no claim to remove');return}const before=structuredClone(claims[selected.id]);delete claims[selected.id];recordChange(selected.id,before,null,'Removed',selected.id);toast('Claim removed');selectTile(selected)};
@@ -238,14 +290,14 @@ viewport.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,vx:vie
 viewport.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(!drag.moved&&Math.hypot(dx,dy)<5)return;if(!drag.moved){drag.moved=true;viewport.setPointerCapture(e.pointerId);viewport.classList.add('dragging')}view.x=drag.vx+dx;view.y=drag.vy+dy;render()});
 viewport.addEventListener('pointerup',e=>{if(!drag)return;const clickedId=!drag.moved?drag.tileId:null;if(drag.moved&&viewport.hasPointerCapture(e.pointerId))viewport.releasePointerCapture(e.pointerId);drag=null;viewport.classList.remove('dragging');if(clickedId){const tile=tiles.find(t=>t.id===clickedId);if(tile)selectTile(tile)}});
 viewport.addEventListener('pointercancel',()=>{drag=null;viewport.classList.remove('dragging')});
-onAuthStateChanged(auth,async user=>{if(teamChallengeUnsubscribe){teamChallengeUnsubscribe();teamChallengeUnsubscribe=null}organizer=false;authTeam=null;challengeMap={};if(!user){setOrganizerMode(false);refreshChallenges();updateIdentityUI();return}if(user.uid===ORGANIZER_UID){setOrganizerMode(true);updateIdentityUI();await loadOrganizerChallenges();toast('Organizer controls unlocked');return}const team=TEAM_ACCOUNTS.findIndex(account=>account.uid===user.uid);if(team>=0){authTeam=team;viewTeam=team;localStorage.setItem('xodus-archive-v2-view-team',team);$('viewTeam').value=team;setOrganizerMode(false);updateIdentityUI();subscribeTeamChallenges(team);toast(`Signed in as Team ${teamNames[team]}`);return}await signOut(auth);$('loginError').textContent='This account is not assigned to the event.'});
+onAuthStateChanged(auth,async user=>{if(teamChallengeUnsubscribe){teamChallengeUnsubscribe();teamChallengeUnsubscribe=null}organizer=false;authTeam=null;organizerChallengeLoaded=false;challengeMap={};renderOrganizerChallengeList();if(!user){setOrganizerMode(false);refreshChallenges();updateIdentityUI();syncStatus('Live · connected','online');return}if(user.uid===ORGANIZER_UID){setOrganizerMode(true);updateIdentityUI();await loadOrganizerChallenges();toast('Organizer controls unlocked');return}const team=TEAM_ACCOUNTS.findIndex(account=>account.uid===user.uid);if(team>=0){authTeam=team;viewTeam=team;localStorage.setItem('xodus-archive-v2-view-team',team);$('viewTeam').value=team;setOrganizerMode(false);updateIdentityUI();subscribeTeamChallenges(team);toast(`Signed in as Team ${teamNames[team]}`);return}await signOut(auth);$('loginError').textContent='This account is not assigned to the event.'});
 onSnapshot(eventRef,snapshot=>{
  if(snapshot.exists()){
   const data=snapshot.data(),compatible=data.boardVersion===BOARD_VERSION;teamCount=Number(data.teamCount||4);claims=compatible?data.claims||{}:{};keyProgress=compatible?data.keyProgress||{}:{};actionStack=compatible?data.actionStack||[]:[];eventLog=compatible?data.eventLog||[]:[];setupLocked=compatible&&!!data.setupLocked;viewTeam=Math.min(viewTeam,teamCount-1);tiles=buildTiles();recomputeKeyProgress();$('teamCount').value=teamCount;localStorage.setItem('xodus-archive-v2-team-count',teamCount);localStorage.setItem('xodus-archive-v2-claims',JSON.stringify(claims));localStorage.setItem('xodus-archive-v2-actions',JSON.stringify(actionStack));localStorage.setItem('xodus-archive-v2-event-log',JSON.stringify(eventLog));localStorage.setItem('xodus-archive-v2-setup-locked',setupLocked);if(selected)selected=tiles.find(t=>t.id===selected.id)||null;renderHistory();if(selected)selectTile(selected);else render();
  }else{
   teamCount=4;viewTeam=Math.min(viewTeam,3);claims={};actionStack=[];eventLog=[];keyProgress={};setupLocked=false;tiles=buildTiles();recomputeKeyProgress();$('teamCount').value=teamCount;localStorage.removeItem('xodus-archive-v2-claims');localStorage.removeItem('xodus-archive-v2-actions');localStorage.removeItem('xodus-archive-v2-event-log');localStorage.removeItem('xodus-archive-v2-setup-locked');renderHistory();render();
  }
- syncStatus('Live · connected','online');
+ if(organizer&&organizerChallengeLoaded)syncStatus('Live · organizer challenges loaded','online');else if(!organizer)syncStatus('Live · connected','online');
 },error=>{console.error(error);syncStatus('Offline · retrying','error')});
 window.addEventListener('resize',fit);fit();
 
@@ -260,7 +312,7 @@ window.addEventListener('resize',fit);fit();
  const tints={outer:'#535b46',middle:'#706e5a',inner:'#847f68',key:'#658b81',vault:'#745488'};
  let visiblePolys=[],lastW=0,lastH=0,frame=0,drag3=null;
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
- const rgb=(hex)=>{let h=hex.replace('#','');if(h.length===3)h=[...h].map(c=>c+c).join('');return [0,2,4].map(i=>parseInt(h.substring(i,i+2),16))};
+ const rgb=(value)=>{if(value.startsWith('rgb')){const numbers=value.match(/[0-9.]+/g);if(numbers?.length>=3)return numbers.slice(0,3).map(Number)}let h=value.replace('#','');if(h.length===3)h=[...h].map(c=>c+c).join('');return [0,2,4].map(i=>parseInt(h.substring(i,i+2),16))};
  const blend=(a,b,p)=>{let A=rgb(a),B=rgb(b);return `rgb(${A.map((v,i)=>Math.round(v+(B[i]-v)*p)).join(',')})`};
  const rand=(v)=>{const x=Math.sin(v*91.173+12.371)*43758.5453;return x-Math.floor(x)};
  const xy=t=>[42*t.q,Math.sqrt(3)*28*(t.r+t.q/2)];
@@ -284,7 +336,8 @@ window.addEventListener('resize',fit);fit();
    const col=tints[type],chosen=selected&&selected.id===t.id,isEligible=eligible.has(t.id);
    const shade=rand(seed)*.20-.09;
    let surface=blend(col,'#bdab82',Math.max(0,shade));
-   if(owner!==null)surface=blend(surface,colors[owner],.32);
+   if(owner!==null)surface=blend(surface,colors[owner],.62);
+   else if(base>=0)surface=blend(surface,colors[base],.43);
    // Proper raised geometry: visible side faces are real projected 3D wall quadrilaterals.
    const faces=[];
    for(let i=0;i<6;i++){
@@ -297,7 +350,7 @@ window.addEventListener('resize',fit);fit();
    if(type==='inner'||type==='vault'){
      ctx.save();ctx.shadowBlur=(type==='vault'?17:8)*cam.scale;ctx.shadowColor=type==='vault'?'#a769fa':'#83d0b8';polygon(top,blend(surface,'#9baf99',.09),'#9cbbab',1.35*cam.scale);ctx.restore();
    }
-   polygon(top,surface,owner!==null?colors[owner]:type==='vault'?'#b28bd4':type==='key'?'#b3b088':'#393a30',Math.max(.7,(owner!==null?2.3:1)*cam.scale));
+   polygon(top,surface,owner!==null?colors[owner]:base>=0?colors[base]:type==='vault'?'#b28bd4':type==='key'?'#b3b088':'#393a30',Math.max(.7,(owner!==null?2.5:1)*cam.scale));
    // Hairline top-left bevel catches the light across all tiles.
    line([top[3],top[4],top[5]],'#d4c7a73d',Math.max(.55,cam.scale*.9));
    ctx.save();ctx.beginPath();top.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.clip();
@@ -334,7 +387,11 @@ window.addEventListener('resize',fit);fit();
      ctx.fillStyle='#e5c2ff';ctx.font=`bold ${Math.max(12,24*cam.scale)}px Georgia`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✦',center.x,center.y);
    }
    if(base>=0){const center=vertex(x,y,height+.2);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`bold ${Math.max(7,11*cam.scale)}px Arial`;ctx.fillStyle='#f9e8b3';ctx.fillText('BASE '+(base+1),center.x,center.y)}
-   if(chosen||isEligible){polygon(top,null,chosen?'#fff0b1':colors[viewTeam],Math.max(1.7,3.2*cam.scale))}
+   if(chosen){polygon(top,null,'#fff0b1',Math.max(1.8,3.0*cam.scale))}
+   else if(isEligible){
+     ctx.save();ctx.globalAlpha=.66;ctx.setLineDash([Math.max(2,3.6*cam.scale),Math.max(2,4.3*cam.scale)]);
+     polygon(top,null,colors[viewTeam],Math.max(1.2,2.3*cam.scale));ctx.restore();
+   }
    ctx.restore();
    visiblePolys.push({tile:t,points:top});
  }
